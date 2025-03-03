@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"profile/controllers"
+	"auth/service"
 	"github.com/gin-gonic/gin"
 
 )
@@ -9,7 +9,7 @@ import (
 
 
 func HealthCheck(c *gin.Context) {
-	err := controllers.HealthCheck(c)
+	err := service.HealthCheck(c)
 	if err != nil {
 		c.JSON(500, gin.H{
 			"error": err.Error(),
