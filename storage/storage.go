@@ -1,91 +1,89 @@
 package storage
 
 import (
-	"context"
-	"database/sql"
-	"auth/db"
+    "context"
+    "database/sql"
+    "auth/db"
+    "time"
 )
 
-const columns = ""
-type Profile struct {
-	UserID             uint
-	PhoneNumber        string
-	Latitude           float64
-	Longitude          float64
-	HomeSize           float64
-	BuildingFloors     int
-	FloorLivingOn      int
-	WindowModel        string
-	AdultsCount        int
-	ChildrenCount      int
-	ElectricityCompany string
-	MeterType          string
-	BillNumber         string
+const userColumns = "id, email, password_hash, created_at, updated_at, last_login, is_active, failed_attempts, locked_until"
+
+type User struct {
+    ID             int       `json:"id"`
+    Email          string    `json:"email"`
+    PasswordHash   string    `json:"password_hash"`
+    CreatedAt      time.Time `json:"created_at"`
+    UpdatedAt      time.Time `json:"updated_at"`
+    LastLogin      time.Time `json:"last_login,omitempty"`
+    IsActive       bool      `json:"is_active"`
+    FailedAttempts int       `json:"failed_attempts"`
+    LockedUntil    *time.Time `json:"locked_until,omitempty"`
 }
 
 type Storage struct {
-	db *db.DB
+    db *db.DB
 }
 
 func (s *Storage) Close() error {
-	if s.db != nil {
-		s.db.Close()
-	}
-	return nil
+    if s.db != nil {
+        s.db.Close()
+    }
+    return nil
 }
 
 func NewStorage() (*Storage, error) {
-	dbConn, err := db.NewDB()
-	if err != nil {
-		return nil, err
-	}
-	return &Storage{db: dbConn}, nil
+    dbConn, err := db.NewDB()
+    if err != nil {
+        return nil, err
+    }
+    return &Storage{db: dbConn}, nil
 }
 
-func (s *Storage) CreateUserProfile(ctx context.Context, p Profile) error {
-	query := `INSERT INTO profiles (` + columns + `)
-              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`
-	_, err := s.db.DB.ExecContext(ctx, query, p.UserID, p.PhoneNumber, p.Latitude, p.Longitude, p.HomeSize, p.BuildingFloors, p.FloorLivingOn, p.WindowModel, p.AdultsCount, p.ChildrenCount, p.ElectricityCompany, p.MeterType, p.BillNumber)
-	if err != nil {
-		return err
-	}
+func (s *Storage) CreateUser(ctx context.Context, u User) error {
+    query := `INSERT INTO users (` + userColumns + `)
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+    _, err := s.db.DB.ExecContext(ctx, query, u.ID, u.Email, u.PasswordHash, u.CreatedAt, u.UpdatedAt, u.LastLogin, u.IsActive, u.FailedAttempts, u.LockedUntil)
+    if err != nil {
+        return err
+    }
 
-	return nil
+    return nil
 }
 
-func (s *Storage) GetUserProfile(ctx context.Context, userID uint) (*Profile, error) {
-	var p Profile
-	query := "SELECT " + columns + " FROM profiles WHERE user_id = $1"
+func (s *Storage) GetUser(ctx context.Context, userID int) (*User, error) {
+    var u User
+    query := "SELECT " + userColumns + " FROM users WHERE id = $1"
 
-	row := s.db.DB.QueryRowContext(ctx, query, userID)
-	err := row.Scan(&p.UserID, &p.PhoneNumber, &p.Latitude, &p.Longitude, &p.HomeSize, &p.BuildingFloors, &p.FloorLivingOn, &p.WindowModel, &p.AdultsCount, &p.ChildrenCount, &p.ElectricityCompany, &p.MeterType, &p.BillNumber)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, err
-	}
+    row := s.db.DB.QueryRowContext(ctx, query, userID)
+    err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.CreatedAt, &u.UpdatedAt, &u.LastLogin, &u.IsActive, &u.FailedAttempts, &u.LockedUntil)
+    if err != nil {
+        if err == sql.ErrNoRows {
+            return nil, nil
+        }
+        return nil, err
+    }
 
-	return &p, nil
+    return &u, nil
 }
 
-func (s *Storage) UpdateUserProfileByID(ctx context.Context, p Profile) error {
-	query := `UPDATE profiles SET phone_number = $1, latitude = $2, longitude = $3, home_size = $4, building_floors = $5, floor_living_on = $6, window_model = $7, adults_count = $8, children_count = $9, electricity_company = $10, meter_type = $11, bill_number = $12
-              WHERE user_id = $13`
-	_, err := s.db.DB.ExecContext(ctx, query, p.PhoneNumber, p.Latitude, p.Longitude, p.HomeSize, p.BuildingFloors, p.FloorLivingOn, p.WindowModel, p.AdultsCount, p.ChildrenCount, p.ElectricityCompany, p.MeterType, p.BillNumber, p.UserID)
-	if err != nil {
-		return err
-	}
+func (s *Storage) UpdateUserByID(ctx context.Context, u User) error {
+    query := `UPDATE users SET email = $1, password_hash = $2, updated_at = $3, last_login = $4, is_active = $5, failed_attempts = $6, locked_until = $7
+              WHERE id = $8`
+    _, err := s.db.DB.ExecContext(ctx, query, u.Email, u.PasswordHash, u.UpdatedAt, u.LastLogin, u.IsActive, u.FailedAttempts, u.LockedUntil, u.ID)
+    if err != nil {
+        return err
+    }
 
-	return nil
+    return nil
 }
 
-func (s *Storage) DeleteUserProfile(ctx context.Context, userID uint) error {
-	query := `DELETE FROM profiles WHERE user_id = $1`
-	_, err := s.db.DB.ExecContext(ctx, query, userID)
-	if err != nil {
-		return err
-	}
+func (s *Storage) DeleteUser(ctx context.Context, userID int) error {
+    query := `DELETE FROM users WHERE id = $1`
+    _, err := s.db.DB.ExecContext(ctx, query, userID)
+    if err != nil {
+        return err
+    }
 
-	return nil
+    return nil
 }
