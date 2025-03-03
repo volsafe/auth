@@ -1,0 +1,12 @@
+Server:
+  Port: 8081
+
+Database:
+  Host: "localhost"
+  Port: 5432
+  User: "pgsql"
+  Password: "pgsql"
+  DbName: "users"
+
+jwt:
+  secret: "bcd975c8db175bfa50c02189f62473e2f80ddaca9012f551758bfc3e123ce84e"
