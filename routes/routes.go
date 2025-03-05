@@ -10,10 +10,10 @@ func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
 	// Profile routes
-	r.POST("/signin", handlers.CreateProfile)
-	r.POST("/signout", handlers.GetProfile)
-	r.PUT("//forget-password", handlers.UpdateProfile)
-	r.DELETE("/delete-profile", handlers.DeleteProfile)
+	r.POST("/signup", handlers.CreateProfile)
+	r.POST("/signin", handlers.GetProfile)
+	r.PUT("/forget-password", handlers.UpdateProfile)
+	r.POST("/delete-profile", handlers.DeleteProfile)
 	
 
 	return r
