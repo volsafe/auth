@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"auth/auth"
 	"auth/storage"
 	"context"
 	"encoding/json"
@@ -24,6 +25,9 @@ type User struct {
 	Password string `json:"password_hash"`
 }
 
+type RefreshRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}
 
 func CreateProfile(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
@@ -80,7 +84,24 @@ func GetProfile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, profile)
+	// Check password
+	err = S.CheckPassword(ctx, u.Email, u.Password)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		return
+	}
+
+	// Generate token pair
+	tokenPair, err := auth.GenerateTokenPair(u.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate tokens"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"tokens": tokenPair,
+		"user":   profile,
+	})
 }
 
 func UpdateProfile(c *gin.Context) {
@@ -131,4 +152,32 @@ func DeleteProfile(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Profile deleted successfully"})
+}
+
+func RefreshToken(c *gin.Context) {
+	var req RefreshRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+		return
+	}
+
+	// Validate refresh token
+	claims, err := auth.ValidateRefreshToken(req.RefreshToken)
+	if err != nil {
+		if err == auth.ErrExpiredToken {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh token has expired"})
+		} else {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid refresh token"})
+		}
+		return
+	}
+
+	// Generate new token pair
+	tokenPair, err := auth.GenerateTokenPair(claims.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate new tokens"})
+		return
+	}
+
+	c.JSON(http.StatusOK, tokenPair)
 }

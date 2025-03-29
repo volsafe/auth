@@ -52,7 +52,7 @@ func (s *Storage) SignUp(ctx context.Context, u User) error {
 
 func (s *Storage) GetUser(ctx context.Context, e string) (*User, error) {
 	var u User
-	query := "SELECT " + userColumns + " FROM users WHERE mail = $1"
+	query := "SELECT " + userColumns + " FROM users WHERE email = $1"
 
 	row := s.db.DB.QueryRowContext(ctx, query, e)
 	err := row.Scan(&u.Email, &u.PasswordHash)

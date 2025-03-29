@@ -1,21 +1,29 @@
 package main
 
 import (
-    "auth/handlers"
-    "auth/routes"
-    "auth/storage"
+	"auth/config"
+	"auth/handlers"
+	"auth/routes"
+	"auth/storage"
+	"fmt"
+
 	_ "github.com/lib/pq"
-	)
+)
 
 func main() {
-    storageInstance, err := storage.NewStorage()
-    if err != nil {
-        panic("Failed to connect to the database")
-    }
-    defer storageInstance.Close()
+	// Load configuration
+	config.LoadConfig()
+	cfg := config.GetConfig()
 
-    handlers.SetStorageInstance(storageInstance)
+	// Initialize storage
+	storageInstance, err := storage.NewStorage()
+	if err != nil {
+		panic(fmt.Sprintf("Failed to connect to the database: %v", err))
+	}
+	defer storageInstance.Close()
 
-    r := routes.SetupRouter()
-    r.Run(":8080")
+	handlers.SetStorageInstance(storageInstance)
+
+	r := routes.SetupRouter()
+	r.Run(fmt.Sprintf(":%s", cfg.Server.Port))
 }
