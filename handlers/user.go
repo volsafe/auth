@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var ctx = context.Background()
@@ -22,7 +23,7 @@ func SetStorageInstance(storageInstance *storage.Storage) {
 
 type User struct {
 	Email    string `json:"email"`
-	Password string `json:"password_hash"`
+	Password string `json:"password"`
 }
 
 type RefreshRequest struct {
@@ -32,6 +33,7 @@ type RefreshRequest struct {
 func CreateProfile(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
+		log.Error().Err(err).Msg("Failed to read request body")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -39,23 +41,35 @@ func CreateProfile(c *gin.Context) {
 
 	var user User
 	if err := json.Unmarshal(body, &user); err != nil {
+		log.Error().Err(err).Msg("Failed to parse JSON")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
+		return
+	}
+
+	log.Info().Str("email", user.Email).Msg("Creating new user")
+
+	// Hash the password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to hash password")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
 		return
 	}
 
 	nUser := storage.User{
 		Email:        user.Email,
-		PasswordHash: user.Password,
+		PasswordHash: string(hashedPassword),
 	}
 
 	err = S.SignUp(ctx, nUser)
 	if err != nil {
-		log.Printf("Error: %v", err)
+		log.Error().Err(err).Str("email", user.Email).Msg("Failed to create user")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create profile"})
 		return
 	}
 
-	c.JSON(http.StatusOK, user)
+	log.Info().Str("email", user.Email).Msg("User created successfully")
+	c.JSON(http.StatusOK, gin.H{"message": "User created successfully"})
 }
 
 func GetProfile(c *gin.Context) {
@@ -118,18 +132,28 @@ func UpdateProfile(c *gin.Context) {
 		return
 	}
 
+	// Hash the password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(profile.Password), bcrypt.DefaultCost)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to hash password")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+		return
+	}
+
 	nUser := storage.User{
 		Email:        profile.Email,
-		PasswordHash: profile.Password,
+		PasswordHash: string(hashedPassword),
 	}
 
 	err = S.UpdateUser(ctx, nUser)
 	if err != nil {
+		log.Error().Err(err).Msg("Failed to update user")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
 		return
 	}
 
-	c.JSON(http.StatusOK, profile)
+	log.Info().Str("email", profile.Email).Msg("User profile updated successfully")
+	c.JSON(http.StatusOK, gin.H{"message": "Profile updated successfully"})
 }
 
 func DeleteProfile(c *gin.Context) {
