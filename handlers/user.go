@@ -21,15 +21,27 @@ func SetStorageInstance(storageInstance *storage.Storage) {
 	S = storageInstance
 }
 
+// User represents the user model for request/response
 type User struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `json:"email" binding:"required,email" example:"user@example.com"`
+	Password string `json:"password" binding:"required" example:"password123"`
 }
 
+// RefreshRequest represents the refresh token request
 type RefreshRequest struct {
-	RefreshToken string `json:"refresh_token"`
+	RefreshToken string `json:"refresh_token" binding:"required" example:"your.refresh.token.here"`
 }
 
+// @Summary Create a new user profile
+// @Description Register a new user with email and password
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param user body User true "User signup info"
+// @Success 200 {object} map[string]string "message":"User created successfully"
+// @Failure 400 {object} map[string]string "error":"Invalid JSON format"
+// @Failure 500 {object} map[string]string "error":"Failed to create profile"
+// @Router /signup [post]
 func CreateProfile(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
@@ -72,6 +84,17 @@ func CreateProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "User created successfully"})
 }
 
+// @Summary Sign in user
+// @Description Authenticate user and return JWT tokens
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param user body User true "User credentials"
+// @Success 200 {object} map[string]interface{} "tokens and user info"
+// @Failure 400 {object} map[string]string "error":"Invalid JSON format"
+// @Failure 401 {object} map[string]string "error":"Invalid credentials"
+// @Failure 500 {object} map[string]string "error":"Failed to fetch profile"
+// @Router /signin [post]
 func GetProfile(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
@@ -118,6 +141,18 @@ func GetProfile(c *gin.Context) {
 	})
 }
 
+// @Summary Update user password
+// @Description Update user's password (requires authentication)
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param user body User true "User info with new password"
+// @Security BearerAuth
+// @Success 200 {object} map[string]string "message":"Profile updated successfully"
+// @Failure 400 {object} map[string]string "error":"Invalid JSON format"
+// @Failure 401 {object} map[string]string "error":"Unauthorized"
+// @Failure 500 {object} map[string]string "error":"Failed to update profile"
+// @Router /forget-password [put]
 func UpdateProfile(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
@@ -156,6 +191,18 @@ func UpdateProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Profile updated successfully"})
 }
 
+// @Summary Delete user profile
+// @Description Delete user's profile (requires authentication)
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param user body User true "User info"
+// @Security BearerAuth
+// @Success 200 {object} map[string]string "message":"Profile deleted successfully"
+// @Failure 400 {object} map[string]string "error":"Invalid JSON format"
+// @Failure 401 {object} map[string]string "error":"Unauthorized"
+// @Failure 500 {object} map[string]string "error":"Failed to delete profile"
+// @Router /delete-profile [post]
 func DeleteProfile(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
@@ -178,6 +225,16 @@ func DeleteProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Profile deleted successfully"})
 }
 
+// @Summary Refresh access token
+// @Description Get new access token using refresh token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body RefreshRequest true "Refresh token"
+// @Success 200 {object} auth.TokenPair "New token pair"
+// @Failure 400 {object} map[string]string "error":"Invalid request format"
+// @Failure 401 {object} map[string]string "error":"Invalid refresh token"
+// @Router /refresh [post]
 func RefreshToken(c *gin.Context) {
 	var req RefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

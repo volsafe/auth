@@ -1,0 +1,249 @@
+basePath: /
+definitions:
+  auth.TokenPair:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
+  handlers.RefreshRequest:
+    properties:
+      refresh_token:
+        example: your.refresh.token.here
+        type: string
+    required:
+    - refresh_token
+    type: object
+  handlers.User:
+    properties:
+      email:
+        example: user@example.com
+        type: string
+      password:
+        example: password123
+        type: string
+    required:
+    - email
+    - password
+    type: object
+host: localhost:8081
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: A JWT-based authentication service with user management capabilities.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Auth Service API
+  version: "1.0"
+paths:
+  /delete-profile:
+    post:
+      consumes:
+      - application/json
+      description: Delete user's profile (requires authentication)
+      parameters:
+      - description: User info
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message":"Profile deleted successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: error":"Invalid JSON format
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: error":"Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error":"Failed to delete profile
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete user profile
+      tags:
+      - auth
+  /forget-password:
+    put:
+      consumes:
+      - application/json
+      description: Update user's password (requires authentication)
+      parameters:
+      - description: User info with new password
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message":"Profile updated successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: error":"Invalid JSON format
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: error":"Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error":"Failed to update profile
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update user password
+      tags:
+      - auth
+  /refresh:
+    post:
+      consumes:
+      - application/json
+      description: Get new access token using refresh token
+      parameters:
+      - description: Refresh token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: New token pair
+          schema:
+            $ref: '#/definitions/auth.TokenPair'
+        "400":
+          description: error":"Invalid request format
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: error":"Invalid refresh token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Refresh access token
+      tags:
+      - auth
+  /signin:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and return JWT tokens
+      parameters:
+      - description: User credentials
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: tokens and user info
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: error":"Invalid JSON format
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: error":"Invalid credentials
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error":"Failed to fetch profile
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Sign in user
+      tags:
+      - auth
+  /signup:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user with email and password
+      parameters:
+      - description: User signup info
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message":"User created successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: error":"Invalid JSON format
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error":"Failed to create profile
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new user profile
+      tags:
+      - auth
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
